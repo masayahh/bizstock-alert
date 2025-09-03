@@ -1,0 +1,12 @@
+name: Feature request
+description: 機能要望
+title: "[Feat] "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: value
+    attributes: { label: 価値/背景, placeholder: 誰が何のために }
+    validations: { required: true }
+  - type: textarea
+    id: scope
+    attributes: { label: スコープ, placeholder: 含む/含まない }

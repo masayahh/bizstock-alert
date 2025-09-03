@@ -1,0 +1,15 @@
+name: Bug report
+description: バグの報告
+title: "[Bug] "
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes: { label: 何が起きたか, description: 期待 vs 実際, placeholder: ... }
+    validations: { required: true }
+  - type: textarea
+    id: reproduce
+    attributes: { label: 再現手順, placeholder: 1) ... }
+  - type: input
+    id: env
+    attributes: { label: 環境, placeholder: iOS/Android/Web, Expo SDK, Node/npm }
