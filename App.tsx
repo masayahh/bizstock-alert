@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Provider, useDispatch, useSelector } from 'react-redux';
 import {
   View,
@@ -10,9 +10,21 @@ import {
   SafeAreaView,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
 } from 'react-native';
 import store, { RootState } from './src/store';
 import { addTicker, removeTicker } from './src/store/watchlistSlice';
+import { Notification } from './src/store/notificationsSlice';
+import {
+  setHighImmediate,
+  setQuietMode,
+  setFollowUpsOnly,
+} from './src/store/settingsSlice';
+import LiveTile from './src/components/LiveTile';
+import EventSheet from './src/components/EventSheet';
+import { fetchStockPrice } from './src/services/priceService';
+import NotificationLine from './src/components/NotificationLine';
+import SettingsBlock from './src/components/SettingsBlock';
 
 /**
  * Screen component that allows the user to manage their watchlist of ticker
@@ -21,10 +33,43 @@ import { addTicker, removeTicker } from './src/store/watchlistSlice';
  * dark backgrounds, subtle borders and an accent color for interactive
  * elements.
  */
-function WatchlistScreen() {
-  const tickers = useSelector((state: RootState) => state.watchlist.tickers);
+function HomeScreen() {
+  // Access the watch list from the store. Note that the slice is registered
+  // as `watchList` (camelCase L) in the store reducer.
+  const tickers = useSelector((state: RootState) => state.watchList.tickers);
+  const notifications = useSelector(
+    (state: RootState) => state.notifications.items
+  );
+  const highImmediate = useSelector(
+    (state: RootState) => state.settings.highImmediate
+  );
+  const quietMode = useSelector((state: RootState) => state.settings.quietMode);
+  const followUpsOnly = useSelector((state: RootState) => state.settings.followUpsOnly);
   const dispatch = useDispatch();
   const [input, setInput] = useState('');
+  // Hold live data for each ticker. Each entry contains a percent change and note.
+  const [liveData, setLiveData] = useState<{[ticker: string]: { percentChange: number; note: string }}>({});
+  // Currently selected notification for displaying an EventSheet overlay
+  const [selected, setSelected] = useState<Notification | null>(null);
+
+  // Whenever the watchlist changes fetch a (stub) price and compute a random percent change
+  useEffect(() => {
+    async function updatePrices() {
+      const newData: {[ticker: string]: { percentChange: number; note: string }} = {};
+      for (const t of tickers) {
+        try {
+          await fetchStockPrice(t);
+          // For demonstration generate a random percentage change between -1.5 and +1.5
+          const change = parseFloat(((Math.random() * 3) - 1.5).toFixed(1));
+          newData[t] = { percentChange: change, note: '続報なし' };
+        } catch (e) {
+          newData[t] = { percentChange: 0, note: '更新取得失敗' };
+        }
+      }
+      setLiveData(newData);
+    }
+    updatePrices();
+  }, [tickers]);
 
   const handleAdd = () => {
     const trimmed = input.trim();
@@ -34,7 +79,7 @@ function WatchlistScreen() {
     }
   };
 
-  const renderItem = ({ item }: { item: string }) => (
+  const renderTicker = ({ item }: { item: string }) => (
     <View style={styles.tickerItem}>
       <Text style={styles.tickerText}>{item}</Text>
       <TouchableOpacity
@@ -46,39 +91,132 @@ function WatchlistScreen() {
     </View>
   );
 
+  const renderNotification = ({ item }: { item: Notification }) => (
+    <TouchableOpacity onPress={() => setSelected(item)}>
+      <NotificationLine
+        ticker={item.ticker}
+        company={item.ticker}
+        headline={item.message}
+        importance={item.importance}
+        priceChange={0}
+        source={''}
+      />
+    </TouchableOpacity>
+  );
+
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={{ flex: 1 }}
       >
-        <Text style={styles.title}>ウォッチリスト</Text>
-        <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.input}
-            value={input}
-            onChangeText={setInput}
-            placeholder="ティッカーを入力"
-            placeholderTextColor={COLORS.secondary}
-            autoCapitalize="characters"
-            returnKeyType="done"
-            onSubmitEditing={handleAdd}
+        <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
+          {/* Watchlist Section */}
+          <Text style={styles.title}>ウォッチリスト</Text>
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={styles.input}
+              value={input}
+              onChangeText={setInput}
+              placeholder="ティッカーを入力"
+              placeholderTextColor={COLORS.secondary}
+              autoCapitalize="characters"
+              returnKeyType="done"
+              onSubmitEditing={handleAdd}
+            />
+            <TouchableOpacity
+              style={styles.addButton}
+              onPress={handleAdd}
+              accessibilityLabel="Add ticker"
+            >
+              <Text style={styles.addButtonText}>追加</Text>
+            </TouchableOpacity>
+          </View>
+          {tickers.map((t) => (
+            <View key={t} style={styles.tickerItem}>
+              <Text style={styles.tickerText}>{t}</Text>
+              <TouchableOpacity
+                accessibilityLabel={`Remove ${t}`}
+                onPress={() => dispatch(removeTicker(t))}
+              >
+                <Text style={styles.removeButton}>×</Text>
+              </TouchableOpacity>
+            </View>
+          ))}
+
+          {/* Live Tiles Section */}
+          {tickers.length > 0 && (
+            <>
+              <Text style={styles.title}>ライブアップデート</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                {tickers.map((t) => {
+                  const data = liveData[t] || { percentChange: 0, note: '' };
+                  return (
+                    <LiveTile
+                      key={t}
+                      ticker={t}
+                      percentChange={data.percentChange}
+                      note={data.note}
+                    />
+                  );
+                })}
+              </ScrollView>
+            </>
+          )}
+
+          {/* Notifications Section */}
+          <Text style={styles.title}>通知履歴</Text>
+          {notifications.length === 0 ? (
+            <Text style={styles.emptyText}>通知はまだありません</Text>
+          ) : (
+            notifications.map((n) => (
+              <TouchableOpacity key={n.id} onPress={() => setSelected(n)}>
+                <NotificationLine
+                  ticker={n.ticker}
+                  company={n.ticker}
+                  headline={n.message}
+                  importance={n.importance}
+                  priceChange={0}
+                  source=""
+                />
+              </TouchableOpacity>
+            ))
+          )}
+
+          {/* Settings Section */}
+          <Text style={styles.title}>設定</Text>
+          <SettingsBlock
+            title="高重要度は即時通知"
+            value={highImmediate}
+            onToggle={(val) => dispatch(setHighImmediate(val))}
           />
-          <TouchableOpacity
-            style={styles.addButton}
-            onPress={handleAdd}
-            accessibilityLabel="Add ticker"
-          >
-            <Text style={styles.addButtonText}>追加</Text>
-          </TouchableOpacity>
-        </View>
-        <FlatList
-          data={tickers}
-          keyExtractor={(item) => item}
-          renderItem={renderItem}
-          contentContainerStyle={{ paddingVertical: 8 }}
-        />
+          <SettingsBlock
+            title="静音モード"
+            value={quietMode}
+            onToggle={(val) => dispatch(setQuietMode(val))}
+          />
+
+          <SettingsBlock
+            title="続報のみ受け取る"
+            value={followUpsOnly}
+            onToggle={(val) => dispatch(setFollowUpsOnly(val))}
+          />
+        </ScrollView>
       </KeyboardAvoidingView>
+      {selected && (
+        <EventSheet
+          summary={selected.message}
+          sources={[{ name: '出典', url: 'https://example.com' }]}
+          onFollowUpsOnly={() => {
+            dispatch(setFollowUpsOnly(true));
+            setSelected(null);
+          }}
+          onQuiet={() => {
+            dispatch(setQuietMode(true));
+            setSelected(null);
+          }}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -86,7 +224,7 @@ function WatchlistScreen() {
 export default function App() {
   return (
     <Provider store={store}>
-      <WatchlistScreen />
+      <HomeScreen />
     </Provider>
   );
 }
@@ -162,5 +300,11 @@ const styles = StyleSheet.create({
     fontSize: 20,
     lineHeight: 20,
     fontWeight: '600',
+  },
+  /** Text displayed when there are no notifications. */
+  emptyText: {
+    color: COLORS.secondary,
+    fontSize: 14,
+    marginBottom: 8,
   },
 });
