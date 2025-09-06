@@ -4,6 +4,8 @@ import { configureStore } from '@reduxjs/toolkit';
 // are added to the application they should be imported here and added
 // to the root reducer below.
 import watchlistReducer from './watchlistSlice';
+import notificationsReducer from './notificationsSlice';
+import settingsReducer from './settingsSlice';
 
 /**
  * Configure the Redux store for the BizStock application. This store holds
@@ -12,7 +14,13 @@ import watchlistReducer from './watchlistSlice';
  */
 export const store = configureStore({
   reducer: {
+    // Slice holding the list of ticker symbols the user is following.
     watchlist: watchlistReducer,
+    // Slice containing pending and past notifications.  New notifications are
+    // prepended to ensure most recent alerts appear first.
+    notifications: notificationsReducer,
+    // Slice storing user adjustable settings such as notification limits.
+    settings: settingsReducer,
   },
 });
 
