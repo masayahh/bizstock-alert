@@ -36,7 +36,10 @@ import SettingsBlock from './src/components/SettingsBlock';
 function HomeScreen() {
   // Access the watch list from the store. Note that the slice is registered
   // as `watchList` (camelCase L) in the store reducer.
-  const tickers = useSelector((state: RootState) => state.watchList.tickers);
+  // Access the watchlist slice as defined in src/store/index.ts. The slice is
+  // registered under the key `watchlist` in the store reducer. Using the
+  // incorrect key (e.g. watchList) would result in `undefined` access.
+  const tickers = useSelector((state: RootState) => state.watchlist.tickers);
   const notifications = useSelector(
     (state: RootState) => state.notifications.items
   );
