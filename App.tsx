@@ -20,11 +20,11 @@ import {
   setQuietMode,
   setFollowUpsOnly,
 } from './src/store/settingsSlice';
-import LiveTile from './src/components/LiveTile';
-import EventSheet from './src/components/EventSheet';
+import LiveTile from './src/LiveTile';
+import EventSheet from './src/EventSheet';
 import { fetchStockPrice } from './src/services/priceService';
-import NotificationLine from './src/components/NotificationLine';
-import SettingsBlock from './src/components/SettingsBlock';
+import NotificationLine from './src/NotificationLine';
+import SettingsBlock from './src/SettingsBlock';
 
 /**
  * Screen component that allows the user to manage their watchlist of ticker
