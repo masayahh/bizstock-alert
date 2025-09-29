@@ -8,7 +8,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: 'lts/*', cache: 'npm' }
-      - run: npm ci
+        with:
+          node-version: '20'
+          cache: 'npm'        # ← lock があるならOK
+      - run: npm ci           # ← lock がある前提の高速インストール
+      - run: npx jest --clearCache || true
       - run: npm run lint --if-present
       - run: npm test --if-present -- --ci
