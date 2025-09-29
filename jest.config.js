@@ -1,8 +1,9 @@
 module.exports = {
   preset: 'jest-expo',
-  transform: {
-    '^.+\\.tsx?$': 'babel-jest',
-  },
-  setupFilesAfterEnv: ['@testing-library/jest-native/extend-expect'],
-  testMatch: ['**/?(*.)+(spec|test).ts?(x)'],
+  testEnvironment: 'jsdom',
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
+  testPathIgnorePatterns: [
+    '/node_modules/',
+    '<rootDir>/notif-first-news/' // リポ内の別アプリ配下があれば無視
+  ]
 };
