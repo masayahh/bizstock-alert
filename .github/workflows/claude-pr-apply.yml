@@ -1,0 +1,51 @@
+name: Claude Apply (PR)
+on:
+  issue_comment:
+    types: [created]
+permissions:
+  contents: write
+  pull-requests: write
+  issues: read
+jobs:
+  apply:
+    if: ${{ github.event.issue.pull_request && contains(github.event.comment.body, '/apply') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get PR head
+        id: pr
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = await github.rest.pulls.get({
+              owner: context.repo.owner, repo: context.repo.repo,
+              pull_number: context.payload.issue.number,
+            });
+            core.setOutput('head_ref', pr.data.head.ref);
+            core.setOutput('head_repo', pr.data.head.repo.full_name);
+
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ steps.pr.outputs.head_repo }}
+          ref: ${{ steps.pr.outputs.head_ref }}
+          fetch-depth: 0
+          token: ${{ secrets.GH_TOKEN }}
+
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+
+      - name: Apply patch from Claude
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          PR_NUMBER: ${{ github.event.issue.number }}
+          PROMPT: ${{ github.event.comment.body }}
+        run: node tools/claude_apply.js
+
+      - name: Commit & push
+        run: |
+          git add -A
+          if git diff --cached --quiet; then echo "No changes."; else
+            git -c user.name="ai-bot" -c user.email="ai-bot@users.noreply.github.com" \
+              commit -m "chore(ai): apply /apply on PR #${{ github.event.issue.number }}"
+            git push
+          fi
