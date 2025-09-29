@@ -1,0 +1,52 @@
+name: Claude Apply (PR)
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: read
+
+jobs:
+  apply:
+    if: ${{ github.event.issue.pull_request && contains(github.event.comment.body, '/apply') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get PR info
+        id: pr
+        env: { GH_TOKEN: ${{ secrets.GH_TOKEN }} }
+        run: |
+          gh api repos/${GITHUB_REPOSITORY}/pulls/${{ github.event.issue.number }} > pr.json
+          echo "HEAD_REF=$(jq -r .head.ref pr.json)" >> $GITHUB_OUTPUT
+          echo "HEAD_REPO=$(jq -r .head.repo.full_name pr.json)" >> $GITHUB_OUTPUT
+
+      - name: Checkout PR head
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ steps.pr.outputs.HEAD_REPO }}
+          ref: ${{ steps.pr.outputs.HEAD_REF }}
+          fetch-depth: 0
+          token: ${{ secrets.GH_TOKEN }}
+
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+
+      - name: Apply patch from Claude
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.issue.number }}
+          PROMPT: ${{ github.event.comment.body }}
+        run: node tools/claude_apply.js
+
+      - name: Commit & push
+        run: |
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            git -c user.name="ai-bot" -c user.email="ai-bot@users.noreply.github.com" commit -m "chore(ai): apply /apply on PR #${{ github.event.issue.number }}"
+            git push
+          fi
