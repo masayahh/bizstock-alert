@@ -31,7 +31,8 @@ jobs:
           token: ${{ secrets.GH_TOKEN }}
 
       - uses: actions/setup-node@v4
-        with: { node-version: '20' }
+        with:
+          node-version: '20'
 
       - name: Apply patch from Claude
         env:
@@ -44,8 +45,9 @@ jobs:
       - name: Commit & push
         run: |
           git add -A
-          if git diff --cached --quiet; then echo "No changes."; else
-            git -c user.name="ai-bot" -c user.email="ai-bot@users.noreply.github.com" \
-              commit -m "chore(ai): apply /apply on PR #${{ github.event.issue.number }}"
+          if git diff --cached --quiet; then
+            echo "No changes."
+          else
+            git -c user.name="ai-bot" -c user.email="ai-bot@users.noreply.github.com" commit -m "chore(ai): apply /apply on PR #${{ github.event.issue.number }}"
             git push
           fi

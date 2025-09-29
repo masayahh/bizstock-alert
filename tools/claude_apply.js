@@ -17,28 +17,24 @@ async function anthropic(system, user){
       messages:[{role:"user",content:user}],
     }),
   });
-  const j = await r.json();
+  const j=await r.json();
   if(j.error) throw new Error(JSON.stringify(j.error));
   return (j.content||[]).map(c=>c.text||"").join("\n");
 }
 function extractDiff(t){
-  const m = t.match(/```diff([\s\S]*?)```/);
-  if(!m) throw new Error("No unified diff in response");
+  const m=t.match(/```diff([\s\S]*?)```/);
+  if(!m) throw new Error("No unified diff block");
   return m[1].trim();
 }
-
 (async()=>{
-  const prompt = process.env.PROMPT || "";
-  const system = [
-    "You are a senior engineer.",
-    "Output ONLY one unified diff wrapped in ```diff fences.",
-    "Patch must apply at repo root with 'git apply -p0'."
+  const prompt=process.env.PROMPT||"Goal: Nothing.";
+  const system=[
+    "You are a senior engineer. Output ONLY one unified diff wrapped in ```diff fences.",
+    "Patch must apply at repo root with 'git apply -p0'. Keep changes minimal and safe."
   ].join(" ");
-  const user = prompt;
-
-  const reply = await anthropic(system, user);
-  const diff = extractDiff(reply);
-  fs.writeFileSync("ai.patch", diff);
-  cp.execSync("git apply --whitespace=fix ai.patch", {stdio:"inherit"});
+  const reply=await anthropic(system,prompt);
+  const diff=extractDiff(reply);
+  fs.writeFileSync("ai.patch",diff);
+  cp.execSync("git apply --whitespace=fix ai.patch",{stdio:"inherit"});
   console.log("✅ Patch applied.");
 })().catch(e=>{ console.error(e); process.exit(1); });

@@ -1,0 +1,41 @@
+name: Claude Builder (nightly)
+on:
+  schedule:
+    - cron: '0 12 * * *'   # UTC 12:00 = JST 21:00
+  workflow_dispatch:
+permissions:
+  contents: write
+  pull-requests: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GH_TOKEN }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Read AUTO_TASKS.md into PROMPT
+        run: |
+          echo "PROMPT<<'EOF'" >> $GITHUB_ENV
+          cat AUTO_TASKS.md >> $GITHUB_ENV || echo "Goal: No tasks. Create a README update." >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+      - name: Run Claude to apply next task
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          PROMPT: ${{ env.PROMPT }}
+        run: |
+          node tools/claude_apply.js || echo "No patch"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes."
+            exit 0
+          fi
+          BR="ai/nightly-$(date +%Y%m%d-%H%M%S)"
+          git checkout -b "$BR"
+          git -c user.name="ai-bot" -c user.email="ai-bot@users.noreply.github.com" commit -m "chore(ai): nightly task"
+          git push -u origin "$BR"
+          gh api repos/${{ github.repository }}/pulls -f title="AI nightly: $(date -u +"%Y-%m-%d")" -f head="$BR" -f base="main" || true
