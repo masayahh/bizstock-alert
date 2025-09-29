@@ -18,9 +18,16 @@ async function anthropic(system, user){
     }),
   });
   const j = await r.json();
+ai/work-01
+  if (j.error) throw new Error(JSON.stringify(j.error));
+  return (j.content||[]).map(c=>c.text||"").join("\n");
+}
+
+
   if(j.error) throw new Error(JSON.stringify(j.error));
   return (j.content||[]).map(c=>c.text||"").join("\n");
 }
+ main
 function extractDiff(t){
   const m = t.match(/```diff([\s\S]*?)```/);
   if(!m) throw new Error("No unified diff in response");
@@ -34,9 +41,14 @@ function extractDiff(t){
     "Output ONLY one unified diff wrapped in ```diff fences.",
     "Patch must apply at repo root with 'git apply -p0'."
   ].join(" ");
+ai/work-01
+
+  const reply = await anthropic(system, prompt);
+
   const user = prompt;
 
   const reply = await anthropic(system, user);
+ main
   const diff = extractDiff(reply);
   fs.writeFileSync("ai.patch", diff);
   cp.execSync("git apply --whitespace=fix ai.patch", {stdio:"inherit"});
