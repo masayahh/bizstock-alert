@@ -1,1 +1,6 @@
-20
+diff --git a/.nvmrc b/.nvmrc
+new file mode 100644
+--- /dev/null
++++ b/.nvmrc
+@@ -0,0 +1 @@
++20
