@@ -163,3 +163,47 @@ export interface RSSFeedItem {
   /** Optional: categories/tags */
   categories?: string[];
 }
+
+/**
+ * User profile for personalization
+ * Tracks user preferences and watchlist
+ */
+export interface UserProfile {
+  /** User ID */
+  userId: string;
+  /** Watched ticker codes (portfolio) */
+  watchlist: string[];
+  /** Optional: portfolio positions for weighted scoring */
+  positions?: Record<string, number>; // ticker -> share count
+  /** Event type preferences (weight multipliers) */
+  eventTypeWeights?: Partial<Record<EventType, number>>;
+  /** Read event IDs (for digest filtering) */
+  readEvents: Set<string>;
+}
+
+/**
+ * Personalized event with relevance scoring
+ * Extends ClusteredEvent with user-specific metadata
+ */
+export interface PersonalizedEvent extends ClusteredEvent {
+  /** Relevance score for this user (0-100) */
+  relevanceScore: number;
+  /** User-specific impact level (may differ from base impact) */
+  personalImpact: ImpactLevel;
+  /** Reason for this score (for transparency) */
+  scoreReason: string;
+}
+
+/**
+ * Ranking configuration for event sorting
+ */
+export interface RankingConfig {
+  /** Weight for relevance score (0-1) */
+  relevanceWeight: number;
+  /** Weight for recency (0-1) */
+  recencyWeight: number;
+  /** Weight for base impact level (0-1) */
+  impactWeight: number;
+  /** Boost multiplier for events with multiple sources */
+  multiSourceBoost: number;
+}
