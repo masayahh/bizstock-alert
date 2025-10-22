@@ -19,14 +19,17 @@
     "@reduxjs/toolkit": "^1.9.5",
     "expo": "^49.0.0",
     "expo-notifications": "~0.20.1",
+    "fast-xml-parser": "^4.3.2",
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "react-native": "0.72.4",
-    "react-redux": "^8.1.2"
+    "react-redux": "^8.1.2",
+    "uuid": "^9.0.1"
   },
   "devDependencies": {
     "@types/react": "~18.0.27",
     "@types/react-native": "~0.72.4",
+    "@types/uuid": "^9.0.7",
     "@typescript-eslint/eslint-plugin": "^5.61.0",
     "@typescript-eslint/parser": "^5.61.0",
     "babel-preset-expo": "^10.0.0",
