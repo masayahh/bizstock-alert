@@ -1,30 +1,29 @@
 import React, { useState, useEffect } from 'react';
-import { Provider, useDispatch, useSelector } from 'react-redux';
 import {
   View,
   Text,
   StyleSheet,
   TextInput,
-  FlatList,
   TouchableOpacity,
   SafeAreaView,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
 } from 'react-native';
+import { Provider, useDispatch, useSelector } from 'react-redux';
+
+import EventSheet from './src/EventSheet';
+import LiveTile from './src/LiveTile';
+import NotificationLine from './src/NotificationLine';
+import SettingsBlock from './src/SettingsBlock';
 import store, { RootState } from './src/store';
-import { addTicker, removeTicker } from './src/store/watchlistSlice';
 import { Notification } from './src/store/notificationsSlice';
 import {
   setHighImmediate,
   setQuietMode,
   setFollowUpsOnly,
 } from './src/store/settingsSlice';
-import LiveTile from './src/LiveTile';
-import EventSheet from './src/EventSheet';
-import { fetchStockPrice } from './src/services/priceService';
-import NotificationLine from './src/NotificationLine';
-import SettingsBlock from './src/SettingsBlock';
+import { addTicker, removeTicker } from './src/store/watchlistSlice';
 
 /**
  * Screen component that allows the user to manage their watchlist of ticker
@@ -41,37 +40,41 @@ function HomeScreen() {
   // incorrect key (e.g. watchList) would result in `undefined` access.
   const tickers = useSelector((state: RootState) => state.watchlist.tickers);
   const notifications = useSelector(
-    (state: RootState) => state.notifications.items
+    (state: RootState) => state.notifications.items,
   );
   const highImmediate = useSelector(
-    (state: RootState) => state.settings.highImmediate
+    (state: RootState) => state.settings.highImmediate,
   );
   const quietMode = useSelector((state: RootState) => state.settings.quietMode);
-  const followUpsOnly = useSelector((state: RootState) => state.settings.followUpsOnly);
+  const followUpsOnly = useSelector(
+    (state: RootState) => state.settings.followUpsOnly,
+  );
   const dispatch = useDispatch();
   const [input, setInput] = useState('');
-  // Hold live data for each ticker. Each entry contains a percent change and note.
-  const [liveData, setLiveData] = useState<{[ticker: string]: { percentChange: number; note: string }}>({});
+  // Hold event status for each ticker (aligned with product spec: no price display)
+  const [tickerStatus, setTickerStatus] = useState<{
+    [ticker: string]: { status: string; importance: '強' | '中' | '弱' | null };
+  }>({});
   // Currently selected notification for displaying an EventSheet overlay
   const [selected, setSelected] = useState<Notification | null>(null);
 
-  // Whenever the watchlist changes fetch a (stub) price and compute a random percent change
+  // Whenever the watchlist changes, initialize status for each ticker
+  // In production, this would fetch latest IR/PR/EDINET events via backend API
   useEffect(() => {
-    async function updatePrices() {
-      const newData: {[ticker: string]: { percentChange: number; note: string }} = {};
-      for (const t of tickers) {
-        try {
-          await fetchStockPrice(t);
-          // For demonstration generate a random percentage change between -1.5 and +1.5
-          const change = parseFloat(((Math.random() * 3) - 1.5).toFixed(1));
-          newData[t] = { percentChange: change, note: '続報なし' };
-        } catch (e) {
-          newData[t] = { percentChange: 0, note: '更新取得失敗' };
-        }
-      }
-      setLiveData(newData);
+    const newStatus: {
+      [ticker: string]: {
+        status: string;
+        importance: '強' | '中' | '弱' | null;
+      };
+    } = {};
+    for (const t of tickers) {
+      // Placeholder: In production, fetch real event data from backend
+      newStatus[t] = {
+        status: '新規開示なし（デモ）',
+        importance: null,
+      };
     }
-    updatePrices();
+    setTickerStatus(newStatus);
   }, [tickers]);
 
   const handleAdd = () => {
@@ -81,31 +84,6 @@ function HomeScreen() {
       setInput('');
     }
   };
-
-  const renderTicker = ({ item }: { item: string }) => (
-    <View style={styles.tickerItem}>
-      <Text style={styles.tickerText}>{item}</Text>
-      <TouchableOpacity
-        accessibilityLabel={`Remove ${item}`}
-        onPress={() => dispatch(removeTicker(item))}
-      >
-        <Text style={styles.removeButton}>×</Text>
-      </TouchableOpacity>
-    </View>
-  );
-
-  const renderNotification = ({ item }: { item: Notification }) => (
-    <TouchableOpacity onPress={() => setSelected(item)}>
-      <NotificationLine
-        ticker={item.ticker}
-        company={item.ticker}
-        headline={item.message}
-        importance={item.importance}
-        priceChange={0}
-        source={''}
-      />
-    </TouchableOpacity>
-  );
 
   return (
     <SafeAreaView style={styles.container}>
@@ -153,13 +131,16 @@ function HomeScreen() {
               <Text style={styles.title}>ライブアップデート</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 {tickers.map((t) => {
-                  const data = liveData[t] || { percentChange: 0, note: '' };
+                  const data = tickerStatus[t] || {
+                    status: '読み込み中...',
+                    importance: null,
+                  };
                   return (
                     <LiveTile
                       key={t}
                       ticker={t}
-                      percentChange={data.percentChange}
-                      note={data.note}
+                      status={data.status}
+                      importance={data.importance}
                     />
                   );
                 })}
@@ -179,8 +160,7 @@ function HomeScreen() {
                   company={n.ticker}
                   headline={n.message}
                   importance={n.importance}
-                  priceChange={0}
-                  source=""
+                  source="デモ"
                 />
               </TouchableOpacity>
             ))

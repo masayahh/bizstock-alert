@@ -15,8 +15,8 @@ export interface Notification {
   ticker: string;
   /** Human‑friendly message summarising the event. */
   message: string;
-  /** Importance level (高 = high, 中 = medium, 低 = low). */
-  importance: '高' | '中' | '低';
+  /** Impact level per product spec: 強(strong), 中(medium), 弱(weak). */
+  importance: '強' | '中' | '弱';
   /** ISO timestamp when the notification was sent. */
   timestamp: string;
   /** Whether the user has opened or acknowledged this notification. */
@@ -43,7 +43,7 @@ const notificationsSlice = createSlice({
      */
     addNotification: (state, action: PayloadAction<Notification>) => {
       const existingIndex = state.items.findIndex(
-        (n) => n.id === action.payload.id
+        (n) => n.id === action.payload.id,
       );
       if (existingIndex >= 0) {
         state.items[existingIndex] = action.payload;

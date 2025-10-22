@@ -4,47 +4,38 @@ import { View, Text, StyleSheet } from 'react-native';
 /**
  * Props accepted by the NotificationLine component. This matches the
  * one‑line push notification format defined in the BizStock specification.
+ * Per product spec: no price display, only event info and impact level.
  */
 export interface NotificationLineProps {
   ticker: string;
   company: string;
   headline: string;
-  importance: '高' | '中' | '低';
-  /** Percentage change expressed as a signed number, e.g. -2.8 for -2.8%. */
-  priceChange: number;
-  /** Concise source string (e.g. "IR・Reuters"). */
+  /** Impact level: 強(high), 中(medium), 弱(low) */
+  importance: '強' | '中' | '弱';
+  /** Concise source string (e.g. "会社IR/PR", "EDINET"). */
   source: string;
 }
 
 /**
  * Renders a single line summarising an event for use in notifications and
  * lists. The layout adheres to the 90‑character limit and uses the
- * separator character "｜" between fields. Numbers are rendered using
- * monospaced tabular numerals via font features. Colors and typography
- * follow the Calm Black theme.
+ * separator character "｜" between fields. Per product spec: no price,
+ * only event headline and impact level. Colors and typography follow
+ * the Calm Black theme.
  */
 export default function NotificationLine({
   ticker,
   company,
   headline,
   importance,
-  priceChange,
   source,
 }: NotificationLineProps) {
-  const priceStr = `${priceChange >= 0 ? '+' : ''}${priceChange.toFixed(
-    1
-  )}%`;
-  // Compose the message string. We intentionally avoid truncating in the
-  // middle of a field; instead we allow the caller to limit headline length.
-  const message = `🚨 ${ticker} ${company}：${headline}｜重要度 ${importance}｜株価 ${priceStr}｜出典 ${source}`;
+  // Format: 🚨 7203 トヨタ｜生産計画を更新 影響:中〔出典:会社IR/PR〕
+  const message = `🚨 ${ticker} ${company}｜${headline} 影響:${importance}〔出典:${source}〕`;
 
   return (
     <View style={styles.container}>
-      <Text
-        style={styles.text}
-        numberOfLines={1}
-        ellipsizeMode="tail"
-      >
+      <Text style={styles.text} numberOfLines={1} ellipsizeMode="tail">
         {message}
       </Text>
     </View>

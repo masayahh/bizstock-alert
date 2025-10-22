@@ -1,5 +1,11 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+} from 'react-native';
 
 export interface Source {
   name: string;
@@ -24,11 +30,19 @@ export default function EventSheet({
   onQuiet,
 }: EventSheetProps) {
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ padding: 16 }}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={{ padding: 16 }}
+    >
       <Text style={styles.summary}>{summary}</Text>
       <Text style={styles.sectionHeading}>出典</Text>
       {sources.map((src) => (
-        <Text key={src.url} style={styles.source} numberOfLines={2} ellipsizeMode="tail">
+        <Text
+          key={src.url}
+          style={styles.source}
+          numberOfLines={2}
+          ellipsizeMode="tail"
+        >
           {src.name}: {src.url}
         </Text>
       ))}

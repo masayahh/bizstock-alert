@@ -3,9 +3,9 @@ import { configureStore } from '@reduxjs/toolkit';
 // Bring in reducers from individual slices. As additional state slices
 // are added to the application they should be imported here and added
 // to the root reducer below.
-import watchlistReducer from './watchlistSlice';
 import notificationsReducer from './notificationsSlice';
 import settingsReducer from './settingsSlice';
+import watchlistReducer from './watchlistSlice';
 
 /**
  * Configure the Redux store for the BizStock application. This store holds

@@ -3,19 +3,20 @@ import { View, Text, StyleSheet } from 'react-native';
 
 /**
  * Props accepted by the DigestCard component. This component represents one
- * entry in the scheduled digest sent at 9:15/12:15/15:45. It displays
- * summarised information about an event along with the importance chip and
+ * entry in the scheduled digest sent at 08:30/12:15/15:45. It displays
+ * summarised information about an event along with the impact chip and
  * a short note explaining why the event matters.
+ * Per product spec: no price display, only event info and impact level.
  */
 export interface DigestCardProps {
   ticker: string;
   company: string;
   headline: string;
-  importance: '高' | '中' | '低';
-  priceChange: number;
+  /** Impact level per product spec: 強(strong), 中(medium), 弱(weak) */
+  importance: '強' | '中' | '弱';
   source: string;
   time: string; // formatted time like "09:12"
-  why?: string; // optional 18‑character note explaining significance
+  why?: string; // optional note explaining significance (理由と反証)
 }
 
 export default function DigestCard({
@@ -23,22 +24,17 @@ export default function DigestCard({
   company,
   headline,
   importance,
-  priceChange,
   source,
   time,
   why,
 }: DigestCardProps) {
-  const priceStr = `${priceChange >= 0 ? '+' : ''}${priceChange.toFixed(
-    1
-  )}%`;
-
   // Choose chip styles based on importance
   const chipStyle =
-    importance === '高'
+    importance === '強'
       ? styles.chipHigh
       : importance === '中'
-      ? styles.chipMid
-      : styles.chipLow;
+        ? styles.chipMid
+        : styles.chipLow;
 
   return (
     <View style={styles.card}>
@@ -46,20 +42,19 @@ export default function DigestCard({
         <Text style={styles.ticker}>{ticker}</Text>
         <Text style={styles.company}>{company}</Text>
         <View style={[styles.chip, chipStyle]}>
-          <Text style={styles.chipText}>{importance}</Text>
+          <Text style={styles.chipText}>影響:{importance}</Text>
         </View>
       </View>
       <Text style={styles.headline} numberOfLines={2} ellipsizeMode="tail">
         {headline}
       </Text>
       <View style={styles.row}>
-        <Text style={styles.meta}>{priceStr}</Text>
-        <Text style={styles.meta}>｜{source}</Text>
+        <Text style={styles.meta}>出典:{source}</Text>
         <Text style={styles.meta}>｜{time}</Text>
       </View>
       {why ? (
-        <Text style={styles.why} numberOfLines={1} ellipsizeMode="tail">
-          なぜ大事か: {why}
+        <Text style={styles.why} numberOfLines={2} ellipsizeMode="tail">
+          理由: {why}
         </Text>
       ) : null}
     </View>
