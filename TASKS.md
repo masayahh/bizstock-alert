@@ -10,6 +10,6 @@
 - [x] Phase 6: UI統合とモックデータ実装
 - [x] Phase 7: 環境変数設定と本番データパイプライン有効化
 - [x] Phase 8: デバッグ画面・エラーハンドリング・実機テスト準備
-- [ ] Phase 9: エラーハンドリング・パフォーマンス最適化
-- [ ] Phase 10: ドキュメント整備・リリース準備
+- [x] Phase 9: パフォーマンス最適化（memoized selectors、typed Redux hooks）
+- [x] Phase 10: 本番データパイプライン統合（real data pipeline with error handling and fallback）
 

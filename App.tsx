@@ -10,7 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { Provider, useDispatch, useSelector } from 'react-redux';
+import { Provider } from 'react-redux';
 
 import DebugScreen from './src/DebugScreen';
 import ErrorBoundary from './src/ErrorBoundary';
@@ -19,9 +19,19 @@ import LiveTile from './src/LiveTile';
 import NotificationLine from './src/NotificationLine';
 import SettingsBlock from './src/SettingsBlock';
 import { useAppInit } from './src/hooks/useAppInit';
-import store, { AppDispatch, RootState } from './src/store';
+import { useAppDispatch, useAppSelector } from './src/hooks/useRedux';
+import store from './src/store';
 import { markEventRead } from './src/store/eventsSlice';
 import { Notification } from './src/store/notificationsSlice';
+import {
+  selectAllEvents,
+  selectEventsError,
+  selectIsInitialLoading,
+  selectNotifications,
+  selectSettings,
+  selectTickerStatusMap,
+  selectWatchlistTickers,
+} from './src/store/selectors';
 import {
   setFollowUpsOnly,
   setHighImmediate,
@@ -43,24 +53,16 @@ function HomeScreen() {
   // Initialize app (fetch events on mount)
   useAppInit();
 
-  // Access Redux state
-  const tickers = useSelector((state: RootState) => state.watchlist.tickers);
-  const notifications = useSelector(
-    (state: RootState) => state.notifications.items,
-  );
-  const liveEvents = useSelector((state: RootState) => state.events.liveEvents);
-  const allEvents = useSelector((state: RootState) => state.events.events);
-  const loading = useSelector((state: RootState) => state.events.loading);
-  const error = useSelector((state: RootState) => state.events.error);
-  const highImmediate = useSelector(
-    (state: RootState) => state.settings.highImmediate,
-  );
-  const quietMode = useSelector((state: RootState) => state.settings.quietMode);
-  const followUpsOnly = useSelector(
-    (state: RootState) => state.settings.followUpsOnly,
-  );
+  // Access Redux state with memoized selectors
+  const tickers = useAppSelector(selectWatchlistTickers);
+  const notifications = useAppSelector(selectNotifications);
+  const allEvents = useAppSelector(selectAllEvents);
+  const tickerStatusMap = useAppSelector(selectTickerStatusMap);
+  const loading = useAppSelector(selectIsInitialLoading);
+  const error = useAppSelector(selectEventsError);
+  const settings = useAppSelector(selectSettings);
 
-  const dispatch = useDispatch<AppDispatch>();
+  const dispatch = useAppDispatch();
   const [input, setInput] = useState('');
 
   // Currently selected event for displaying an EventSheet overlay
@@ -80,27 +82,6 @@ function HomeScreen() {
       setInput('');
     }
   };
-
-  // Convert live events to ticker status map for LiveTile display
-  const tickerStatusMap: Record<
-    string,
-    { status: string; importance: '強' | '中' | '弱' | null }
-  > = {};
-
-  for (const ticker of tickers) {
-    const event = liveEvents.find((e) => e.primaryTicker === ticker);
-    if (event) {
-      tickerStatusMap[ticker] = {
-        status: event.title.slice(0, 30) + '...',
-        importance: event.personalImpact,
-      };
-    } else {
-      tickerStatusMap[ticker] = {
-        status: loading ? '読み込み中...' : '新規開示なし',
-        importance: null,
-      };
-    }
-  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -233,18 +214,18 @@ function HomeScreen() {
           <Text style={styles.title}>設定</Text>
           <SettingsBlock
             title="高重要度は即時通知"
-            value={highImmediate}
+            value={settings.highImmediate}
             onToggle={(val) => dispatch(setHighImmediate(val))}
           />
           <SettingsBlock
             title="静音モード"
-            value={quietMode}
+            value={settings.quietMode}
             onToggle={(val) => dispatch(setQuietMode(val))}
           />
 
           <SettingsBlock
             title="続報のみ受け取る"
-            value={followUpsOnly}
+            value={settings.followUpsOnly}
             onToggle={(val) => dispatch(setFollowUpsOnly(val))}
           />
         </ScrollView>

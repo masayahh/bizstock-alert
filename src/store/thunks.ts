@@ -9,6 +9,8 @@ import { createAsyncThunk } from '@reduxjs/toolkit';
 
 import { RootState } from './index';
 import { clusterEvents } from '../services/clusteringService';
+import { ingestData } from '../services/dataIngestionService';
+import { normalizeEvent } from '../services/normalizationService';
 import {
   filterUnreadEvents,
   personalizeEvents,
@@ -20,6 +22,7 @@ import {
   rankEvents,
 } from '../services/rankingService';
 import { ClusteredEvent, NormalizedEvent, UserProfile } from '../types/events';
+import { parseError } from '../utils/errorHandler';
 import {
   generateMockDigestEvents,
   generateMockLiveTileEvents,
@@ -48,8 +51,6 @@ export const fetchAndProcessEvents = createAsyncThunk<
   const watchlistTickers = state.watchlist.tickers;
 
   // Create user profile from Redux state
-  // Note: userProfile will be used when real data pipeline is enabled
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const userProfile: UserProfile = {
     userId: 'default-user',
     watchlist: watchlistTickers,
@@ -67,40 +68,63 @@ export const fetchAndProcessEvents = createAsyncThunk<
   }
 
   // REAL DATA PIPELINE (requires API keys)
-  // Note: This will be enabled once user sets up API keys
+  try {
+    // Step 1: Data Ingestion (Phase 1)
+    const ingestionResult = await ingestData({
+      edinetEnabled: true,
+      rssFeeds: [
+        {
+          name: 'PR TIMES',
+          url: 'https://prtimes.jp/main/feed/rss/all.rss',
+          tier: 'B' as const,
+        },
+      ],
+    });
 
-  // Step 1: Data Ingestion (Phase 1)
-  // const rawEvents = await ingestData({
-  //   edinetEnabled: true,
-  //   rssFeeds: DEFAULT_RSS_FEEDS,
-  // });
+    const rawEvents = ingestionResult.events;
 
-  // Step 2: Normalization (Phase 1)
-  // const normalizedEvents = rawEvents.map(normalizeEvent);
+    // Step 2: Normalization (Phase 1)
+    const normalizedEvents = rawEvents.map(normalizeEvent);
 
-  // Step 3: Clustering (Phase 4)
-  // const clusteredEvents = clusterEvents(normalizedEvents, {
-  //   timeWindowMinutes: 30,
-  //   similarityThreshold: 0.7,
-  // });
+    // Filter to watchlist tickers only for performance
+    const relevantEvents = normalizedEvents.filter((event) =>
+      event.tickerCodes.some((ticker) => watchlistTickers.includes(ticker)),
+    );
 
-  // Step 4: Personalization (Phase 5)
-  // const personalizedEvents = personalizeEvents(clusteredEvents, userProfile);
+    // Step 3: Clustering (Phase 4)
+    const clusteredEvents = clusterEvents(relevantEvents, {
+      timeWindowMinutes: parseInt(
+        process.env.EXPO_PUBLIC_CLUSTER_TIME_WINDOW || '30',
+        10,
+      ),
+      similarityThreshold: parseFloat(
+        process.env.EXPO_PUBLIC_CLUSTER_SIMILARITY_THRESHOLD || '0.7',
+      ),
+    });
 
-  // Step 5: Ranking (Phase 5)
-  // const rankedEvents = rankEvents(personalizedEvents, LIVE_FEED_RANKING);
-  // const liveEvents = getTopEvents(rankedEvents, 5, LIVE_FEED_RANKING);
+    // Step 4: Personalization (Phase 5)
+    const personalizedEvents = personalizeEvents(clusteredEvents, userProfile);
 
-  // For now, return mock data with TODO comment
-  console.warn(
-    'API keys not configured. Using mock data. Set EXPO_PUBLIC_OPENAI_API_KEY to enable real data.',
-  );
+    // Step 5: Ranking (Phase 5)
+    const rankedEvents = rankEvents(personalizedEvents, LIVE_FEED_RANKING);
+    const liveEvents = getTopEvents(rankedEvents, 5, LIVE_FEED_RANKING);
 
-  const mockEvents = generateMockLiveTileEvents(watchlistTickers);
-  return {
-    allEvents: mockEvents,
-    liveEvents: mockEvents.slice(0, 3),
-  };
+    return {
+      allEvents: rankedEvents,
+      liveEvents,
+    };
+  } catch (error) {
+    // If real pipeline fails, log error and fall back to mock data
+    const appError = parseError(error);
+    console.error('Data pipeline error:', appError.userMessage);
+
+    console.warn('Falling back to mock data due to error');
+    const mockEvents = generateMockLiveTileEvents(watchlistTickers);
+    return {
+      allEvents: mockEvents,
+      liveEvents: mockEvents.slice(0, 3),
+    };
+  }
 });
 
 /**
@@ -135,11 +159,65 @@ export const generateDigest = createAsyncThunk<
   }
 
   // REAL DIGEST GENERATION (requires API keys)
-  // This would filter events by time window (e.g., since last digest)
-  // and rank them appropriately for the digest type
+  try {
+    // Use existing events from state if available, otherwise fetch fresh
+    const existingEvents = state.events.events;
 
-  const mockEvents = generateMockDigestEvents(watchlistTickers);
-  return filterUnreadEvents(mockEvents, userProfile);
+    let eventsToProcess: ReturnType<typeof personalizeEvents>;
+
+    if (existingEvents.length > 0) {
+      // Use cached events and filter by time window if needed
+      eventsToProcess = existingEvents;
+    } else {
+      // Fetch fresh data
+      const ingestionResult = await ingestData({
+        edinetEnabled: true,
+        rssFeeds: [
+          {
+            name: 'PR TIMES',
+            url: 'https://prtimes.jp/main/feed/rss/all.rss',
+            tier: 'B' as const,
+          },
+        ],
+      });
+
+      const rawEvents = ingestionResult.events;
+      const normalizedEvents = rawEvents.map(normalizeEvent);
+      const relevantEvents = normalizedEvents.filter((event) =>
+        event.tickerCodes.some((ticker) => watchlistTickers.includes(ticker)),
+      );
+      const clusteredEvents = clusterEvents(relevantEvents, {
+        timeWindowMinutes: parseInt(
+          process.env.EXPO_PUBLIC_CLUSTER_TIME_WINDOW || '30',
+          10,
+        ),
+        similarityThreshold: parseFloat(
+          process.env.EXPO_PUBLIC_CLUSTER_SIMILARITY_THRESHOLD || '0.7',
+        ),
+      });
+      eventsToProcess = personalizeEvents(clusteredEvents, userProfile);
+    }
+
+    // Filter to unread events only
+    const unreadEvents = filterUnreadEvents(eventsToProcess, userProfile);
+
+    // Rank by digest type
+    const rankingConfig =
+      digestType === 'morning' ? MORNING_DIGEST_RANKING : LIVE_FEED_RANKING;
+
+    return rankEvents(unreadEvents, rankingConfig);
+  } catch (error) {
+    // If real pipeline fails, fall back to mock data
+    const appError = parseError(error);
+    console.error('Digest generation error:', appError.userMessage);
+    console.warn('Falling back to mock digest data');
+
+    const mockEvents = generateMockDigestEvents(watchlistTickers);
+    const unreadEvents = filterUnreadEvents(mockEvents, userProfile);
+    const rankingConfig =
+      digestType === 'morning' ? MORNING_DIGEST_RANKING : LIVE_FEED_RANKING;
+    return rankEvents(unreadEvents, rankingConfig);
+  }
 });
 
 /**
@@ -186,8 +264,13 @@ export const processNewEvents = createAsyncThunk<
 
   // Cluster new events
   const clusteredEvents: ClusteredEvent[] = clusterEvents(normalizedEvents, {
-    timeWindowMinutes: 30,
-    similarityThreshold: 0.7,
+    timeWindowMinutes: parseInt(
+      process.env.EXPO_PUBLIC_CLUSTER_TIME_WINDOW || '30',
+      10,
+    ),
+    similarityThreshold: parseFloat(
+      process.env.EXPO_PUBLIC_CLUSTER_SIMILARITY_THRESHOLD || '0.7',
+    ),
   });
 
   // Personalize for user
