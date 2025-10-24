@@ -12,6 +12,8 @@ import {
 } from 'react-native';
 import { Provider, useDispatch, useSelector } from 'react-redux';
 
+import DebugScreen from './src/DebugScreen';
+import ErrorBoundary from './src/ErrorBoundary';
 import EventSheet from './src/EventSheet';
 import LiveTile from './src/LiveTile';
 import NotificationLine from './src/NotificationLine';
@@ -49,6 +51,7 @@ function HomeScreen() {
   const liveEvents = useSelector((state: RootState) => state.events.liveEvents);
   const allEvents = useSelector((state: RootState) => state.events.events);
   const loading = useSelector((state: RootState) => state.events.loading);
+  const error = useSelector((state: RootState) => state.events.error);
   const highImmediate = useSelector(
     (state: RootState) => state.settings.highImmediate,
   );
@@ -66,6 +69,9 @@ function HomeScreen() {
   );
   const [selectedNotification, setSelectedNotification] =
     useState<Notification | null>(null);
+
+  // Debug screen visibility (long-press on title to open)
+  const [debugVisible, setDebugVisible] = useState(false);
 
   const handleAdd = () => {
     const trimmed = input.trim();
@@ -104,7 +110,12 @@ function HomeScreen() {
       >
         <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
           {/* Watchlist Section */}
-          <Text style={styles.title}>ウォッチリスト</Text>
+          <TouchableOpacity
+            onLongPress={() => setDebugVisible(true)}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.title}>ウォッチリスト</Text>
+          </TouchableOpacity>
           <View style={styles.inputContainer}>
             <TextInput
               style={styles.input}
@@ -157,6 +168,20 @@ function HomeScreen() {
                 })}
               </ScrollView>
             </>
+          )}
+
+          {/* Error Display */}
+          {error && (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorText}>⚠️ {error}</Text>
+            </View>
+          )}
+
+          {/* Loading Indicator */}
+          {loading && tickers.length > 0 && allEvents.length === 0 && (
+            <View style={styles.loadingContainer}>
+              <Text style={styles.loadingText}>データを取得中...</Text>
+            </View>
           )}
 
           {/* Recent Events Section (from mock data) */}
@@ -263,6 +288,12 @@ function HomeScreen() {
           }}
         />
       )}
+
+      {/* Debug Screen (long-press title to open) */}
+      <DebugScreen
+        visible={debugVisible}
+        onClose={() => setDebugVisible(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -270,7 +301,9 @@ function HomeScreen() {
 export default function App() {
   return (
     <Provider store={store}>
-      <HomeScreen />
+      <ErrorBoundary>
+        <HomeScreen />
+      </ErrorBoundary>
     </Provider>
   );
 }
@@ -307,6 +340,28 @@ const styles = StyleSheet.create({
     color: COLORS.secondary,
     fontSize: 14,
     marginBottom: 8,
+  },
+  errorContainer: {
+    backgroundColor: 'rgba(220, 38, 38, 0.1)',
+    borderColor: '#dc2626',
+    borderRadius: 8,
+    borderWidth: 1,
+    marginBottom: 16,
+    marginTop: 8,
+    padding: 12,
+  },
+  errorText: {
+    color: '#fca5a5',
+    fontSize: 14,
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    marginVertical: 24,
+    padding: 16,
+  },
+  loadingText: {
+    color: COLORS.secondary,
+    fontSize: 14,
   },
   input: {
     color: COLORS.text,
