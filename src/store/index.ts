@@ -3,9 +3,10 @@ import { configureStore } from '@reduxjs/toolkit';
 // Bring in reducers from individual slices. As additional state slices
 // are added to the application they should be imported here and added
 // to the root reducer below.
-import watchlistReducer from './watchlistSlice';
+import eventsReducer from './eventsSlice';
 import notificationsReducer from './notificationsSlice';
 import settingsReducer from './settingsSlice';
+import watchlistReducer from './watchlistSlice';
 
 /**
  * Configure the Redux store for the BizStock application. This store holds
@@ -21,7 +22,17 @@ export const store = configureStore({
     notifications: notificationsReducer,
     // Slice storing user adjustable settings such as notification limits.
     settings: settingsReducer,
+    // Slice managing personalized events from the data pipeline (Phase 1-5).
+    events: eventsReducer,
   },
+  middleware: (getDefaultMiddleware) =>
+    getDefaultMiddleware({
+      serializableCheck: {
+        // Ignore Set objects in eventsSlice.readEventIds
+        ignoredPaths: ['events.readEventIds'],
+        ignoredActions: ['events/markEventRead', 'events/markEventsRead'],
+      },
+    }),
 });
 
 // Infer the `RootState` and `AppDispatch` types from the store itself. These

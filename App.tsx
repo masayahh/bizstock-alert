@@ -1,30 +1,44 @@
-import React, { useState, useEffect } from 'react';
-import { Provider, useDispatch, useSelector } from 'react-redux';
+import React, { useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  TextInput,
-  FlatList,
-  TouchableOpacity,
-  SafeAreaView,
   KeyboardAvoidingView,
   Platform,
+  SafeAreaView,
   ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import store, { RootState } from './src/store';
-import { addTicker, removeTicker } from './src/store/watchlistSlice';
-import { Notification } from './src/store/notificationsSlice';
-import {
-  setHighImmediate,
-  setQuietMode,
-  setFollowUpsOnly,
-} from './src/store/settingsSlice';
-import LiveTile from './src/LiveTile';
+import { Provider } from 'react-redux';
+
+import DebugScreen from './src/DebugScreen';
+import ErrorBoundary from './src/ErrorBoundary';
 import EventSheet from './src/EventSheet';
-import { fetchStockPrice } from './src/services/priceService';
+import LiveTile from './src/LiveTile';
 import NotificationLine from './src/NotificationLine';
 import SettingsBlock from './src/SettingsBlock';
+import { useAppInit } from './src/hooks/useAppInit';
+import { useAppDispatch, useAppSelector } from './src/hooks/useRedux';
+import store from './src/store';
+import { markEventRead } from './src/store/eventsSlice';
+import { Notification } from './src/store/notificationsSlice';
+import {
+  selectAllEvents,
+  selectEventsError,
+  selectIsInitialLoading,
+  selectNotifications,
+  selectSettings,
+  selectTickerStatusMap,
+  selectWatchlistTickers,
+} from './src/store/selectors';
+import {
+  setFollowUpsOnly,
+  setHighImmediate,
+  setQuietMode,
+} from './src/store/settingsSlice';
+import { addTicker, removeTicker } from './src/store/watchlistSlice';
+import { PersonalizedEvent } from './src/types/events';
 
 /**
  * Screen component that allows the user to manage their watchlist of ticker
@@ -32,47 +46,34 @@ import SettingsBlock from './src/SettingsBlock';
  * the × next to each item. The UI follows the Calm Black design spec with
  * dark backgrounds, subtle borders and an accent color for interactive
  * elements.
+ *
+ * Integrated with Phase 1-5 services: data ingestion, clustering, personalization, ranking.
  */
 function HomeScreen() {
-  // Access the watch list from the store. Note that the slice is registered
-  // as `watchList` (camelCase L) in the store reducer.
-  // Access the watchlist slice as defined in src/store/index.ts. The slice is
-  // registered under the key `watchlist` in the store reducer. Using the
-  // incorrect key (e.g. watchList) would result in `undefined` access.
-  const tickers = useSelector((state: RootState) => state.watchlist.tickers);
-  const notifications = useSelector(
-    (state: RootState) => state.notifications.items
-  );
-  const highImmediate = useSelector(
-    (state: RootState) => state.settings.highImmediate
-  );
-  const quietMode = useSelector((state: RootState) => state.settings.quietMode);
-  const followUpsOnly = useSelector((state: RootState) => state.settings.followUpsOnly);
-  const dispatch = useDispatch();
-  const [input, setInput] = useState('');
-  // Hold live data for each ticker. Each entry contains a percent change and note.
-  const [liveData, setLiveData] = useState<{[ticker: string]: { percentChange: number; note: string }}>({});
-  // Currently selected notification for displaying an EventSheet overlay
-  const [selected, setSelected] = useState<Notification | null>(null);
+  // Initialize app (fetch events on mount)
+  useAppInit();
 
-  // Whenever the watchlist changes fetch a (stub) price and compute a random percent change
-  useEffect(() => {
-    async function updatePrices() {
-      const newData: {[ticker: string]: { percentChange: number; note: string }} = {};
-      for (const t of tickers) {
-        try {
-          await fetchStockPrice(t);
-          // For demonstration generate a random percentage change between -1.5 and +1.5
-          const change = parseFloat(((Math.random() * 3) - 1.5).toFixed(1));
-          newData[t] = { percentChange: change, note: '続報なし' };
-        } catch (e) {
-          newData[t] = { percentChange: 0, note: '更新取得失敗' };
-        }
-      }
-      setLiveData(newData);
-    }
-    updatePrices();
-  }, [tickers]);
+  // Access Redux state with memoized selectors
+  const tickers = useAppSelector(selectWatchlistTickers);
+  const notifications = useAppSelector(selectNotifications);
+  const allEvents = useAppSelector(selectAllEvents);
+  const tickerStatusMap = useAppSelector(selectTickerStatusMap);
+  const loading = useAppSelector(selectIsInitialLoading);
+  const error = useAppSelector(selectEventsError);
+  const settings = useAppSelector(selectSettings);
+
+  const dispatch = useAppDispatch();
+  const [input, setInput] = useState('');
+
+  // Currently selected event for displaying an EventSheet overlay
+  const [selectedEvent, setSelectedEvent] = useState<PersonalizedEvent | null>(
+    null,
+  );
+  const [selectedNotification, setSelectedNotification] =
+    useState<Notification | null>(null);
+
+  // Debug screen visibility (long-press on title to open)
+  const [debugVisible, setDebugVisible] = useState(false);
 
   const handleAdd = () => {
     const trimmed = input.trim();
@@ -82,31 +83,6 @@ function HomeScreen() {
     }
   };
 
-  const renderTicker = ({ item }: { item: string }) => (
-    <View style={styles.tickerItem}>
-      <Text style={styles.tickerText}>{item}</Text>
-      <TouchableOpacity
-        accessibilityLabel={`Remove ${item}`}
-        onPress={() => dispatch(removeTicker(item))}
-      >
-        <Text style={styles.removeButton}>×</Text>
-      </TouchableOpacity>
-    </View>
-  );
-
-  const renderNotification = ({ item }: { item: Notification }) => (
-    <TouchableOpacity onPress={() => setSelected(item)}>
-      <NotificationLine
-        ticker={item.ticker}
-        company={item.ticker}
-        headline={item.message}
-        importance={item.importance}
-        priceChange={0}
-        source={''}
-      />
-    </TouchableOpacity>
-  );
-
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
@@ -115,7 +91,12 @@ function HomeScreen() {
       >
         <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
           {/* Watchlist Section */}
-          <Text style={styles.title}>ウォッチリスト</Text>
+          <TouchableOpacity
+            onLongPress={() => setDebugVisible(true)}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.title}>ウォッチリスト</Text>
+          </TouchableOpacity>
           <View style={styles.inputContainer}>
             <TextInput
               style={styles.input}
@@ -153,17 +134,58 @@ function HomeScreen() {
               <Text style={styles.title}>ライブアップデート</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 {tickers.map((t) => {
-                  const data = liveData[t] || { percentChange: 0, note: '' };
+                  const data = tickerStatusMap[t] || {
+                    status: '読み込み中...',
+                    importance: null,
+                  };
                   return (
                     <LiveTile
                       key={t}
                       ticker={t}
-                      percentChange={data.percentChange}
-                      note={data.note}
+                      status={data.status}
+                      importance={data.importance}
                     />
                   );
                 })}
               </ScrollView>
+            </>
+          )}
+
+          {/* Error Display */}
+          {error && (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorText}>⚠️ {error}</Text>
+            </View>
+          )}
+
+          {/* Loading Indicator */}
+          {loading && tickers.length > 0 && allEvents.length === 0 && (
+            <View style={styles.loadingContainer}>
+              <Text style={styles.loadingText}>データを取得中...</Text>
+            </View>
+          )}
+
+          {/* Recent Events Section (from mock data) */}
+          {allEvents.length > 0 && (
+            <>
+              <Text style={styles.title}>最新イベント</Text>
+              {allEvents.slice(0, 10).map((event) => (
+                <TouchableOpacity
+                  key={event.clusterId}
+                  onPress={() => {
+                    dispatch(markEventRead(event.clusterId));
+                    setSelectedEvent(event);
+                  }}
+                >
+                  <NotificationLine
+                    ticker={event.primaryTicker}
+                    company={event.primaryTicker}
+                    headline={event.title}
+                    importance={event.personalImpact}
+                    source={event.sources[0]}
+                  />
+                </TouchableOpacity>
+              ))}
             </>
           )}
 
@@ -173,14 +195,16 @@ function HomeScreen() {
             <Text style={styles.emptyText}>通知はまだありません</Text>
           ) : (
             notifications.map((n) => (
-              <TouchableOpacity key={n.id} onPress={() => setSelected(n)}>
+              <TouchableOpacity
+                key={n.id}
+                onPress={() => setSelectedNotification(n)}
+              >
                 <NotificationLine
                   ticker={n.ticker}
                   company={n.ticker}
                   headline={n.message}
                   importance={n.importance}
-                  priceChange={0}
-                  source=""
+                  source="通知"
                 />
               </TouchableOpacity>
             ))
@@ -190,36 +214,67 @@ function HomeScreen() {
           <Text style={styles.title}>設定</Text>
           <SettingsBlock
             title="高重要度は即時通知"
-            value={highImmediate}
+            value={settings.highImmediate}
             onToggle={(val) => dispatch(setHighImmediate(val))}
           />
           <SettingsBlock
             title="静音モード"
-            value={quietMode}
+            value={settings.quietMode}
             onToggle={(val) => dispatch(setQuietMode(val))}
           />
 
           <SettingsBlock
             title="続報のみ受け取る"
-            value={followUpsOnly}
+            value={settings.followUpsOnly}
             onToggle={(val) => dispatch(setFollowUpsOnly(val))}
           />
         </ScrollView>
       </KeyboardAvoidingView>
-      {selected && (
+
+      {/* Event Sheet for selected event */}
+      {selectedEvent && (
         <EventSheet
-          summary={selected.message}
-          sources={[{ name: '出典', url: 'https://example.com' }]}
+          summary={
+            selectedEvent.summary || selectedEvent.title.slice(0, 150) + '...'
+          }
+          sources={
+            selectedEvent.events.map((e, idx) => ({
+              name: e.sourceName,
+              url: e.url,
+            })) || [{ name: '出典', url: 'https://example.com' }]
+          }
           onFollowUpsOnly={() => {
             dispatch(setFollowUpsOnly(true));
-            setSelected(null);
+            setSelectedEvent(null);
           }}
           onQuiet={() => {
             dispatch(setQuietMode(true));
-            setSelected(null);
+            setSelectedEvent(null);
           }}
         />
       )}
+
+      {/* Event Sheet for selected notification */}
+      {selectedNotification && (
+        <EventSheet
+          summary={selectedNotification.message}
+          sources={[{ name: '出典', url: 'https://example.com' }]}
+          onFollowUpsOnly={() => {
+            dispatch(setFollowUpsOnly(true));
+            setSelectedNotification(null);
+          }}
+          onQuiet={() => {
+            dispatch(setQuietMode(true));
+            setSelectedNotification(null);
+          }}
+        />
+      )}
+
+      {/* Debug Screen (long-press title to open) */}
+      <DebugScreen
+        visible={debugVisible}
+        onClose={() => setDebugVisible(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -227,87 +282,111 @@ function HomeScreen() {
 export default function App() {
   return (
     <Provider store={store}>
-      <HomeScreen />
+      <ErrorBoundary>
+        <HomeScreen />
+      </ErrorBoundary>
     </Provider>
   );
 }
 
 const COLORS = {
-  background: '#000000',
-  card: '#0b0f14',
   accent: '#16a34a',
-  text: '#ffffff',
-  secondary: '#6b7280',
+  background: '#000000',
   border: 'rgba(255,255,255,0.10)',
+  card: '#0b0f14',
+  secondary: '#6b7280',
+  text: '#ffffff',
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-    paddingHorizontal: 16,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '600',
-    color: COLORS.text,
-    marginVertical: 16,
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: 12,
-    paddingHorizontal: 8,
-    backgroundColor: COLORS.card,
-  },
-  input: {
-    flex: 1,
-    color: COLORS.text,
-    paddingVertical: 8,
-    fontSize: 16,
-  },
   addButton: {
     backgroundColor: COLORS.accent,
     borderRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
     marginLeft: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
   },
   addButtonText: {
     color: COLORS.text,
-    fontWeight: '500',
     fontSize: 14,
+    fontWeight: '500',
   },
-  tickerItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: COLORS.card,
-    paddingVertical: 12,
+  container: {
+    backgroundColor: COLORS.background,
+    flex: 1,
     paddingHorizontal: 16,
-    marginBottom: 8,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  tickerText: {
-    color: COLORS.text,
-    fontSize: 16,
-    fontFeatureSettings: '"tnum" 1',
-  },
-  removeButton: {
-    color: COLORS.accent,
-    fontSize: 20,
-    lineHeight: 20,
-    fontWeight: '600',
   },
   /** Text displayed when there are no notifications. */
   emptyText: {
     color: COLORS.secondary,
     fontSize: 14,
     marginBottom: 8,
+  },
+  errorContainer: {
+    backgroundColor: 'rgba(220, 38, 38, 0.1)',
+    borderColor: '#dc2626',
+    borderRadius: 8,
+    borderWidth: 1,
+    marginBottom: 16,
+    marginTop: 8,
+    padding: 12,
+  },
+  errorText: {
+    color: '#fca5a5',
+    fontSize: 14,
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    marginVertical: 24,
+    padding: 16,
+  },
+  loadingText: {
+    color: COLORS.secondary,
+    fontSize: 14,
+  },
+  input: {
+    color: COLORS.text,
+    flex: 1,
+    fontSize: 16,
+    paddingVertical: 8,
+  },
+  inputContainer: {
+    alignItems: 'center',
+    backgroundColor: COLORS.card,
+    borderColor: COLORS.border,
+    borderRadius: 12,
+    borderWidth: 1,
+    flexDirection: 'row',
+    marginBottom: 12,
+    paddingHorizontal: 8,
+  },
+  removeButton: {
+    color: COLORS.accent,
+    fontSize: 20,
+    fontWeight: '600',
+    lineHeight: 20,
+  },
+  tickerItem: {
+    alignItems: 'center',
+    backgroundColor: COLORS.card,
+    borderColor: COLORS.border,
+    borderRadius: 12,
+    borderWidth: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  tickerText: {
+    color: COLORS.text,
+    fontFeatureSettings: '"tnum" 1',
+    fontSize: 16,
+  },
+  title: {
+    color: COLORS.text,
+    fontSize: 24,
+    fontWeight: '600',
+    marginVertical: 16,
   },
 });
