@@ -2,3 +2,7 @@
 # Dependencies
 node_modules/
 *.backup
+
+# Expo
+.expo/
+.expo-shared/
