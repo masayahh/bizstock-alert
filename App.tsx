@@ -4,6 +4,7 @@ import {
   Platform,
   SafeAreaView,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TextInput,
@@ -85,6 +86,7 @@ function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.background} />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={{ flex: 1 }}
@@ -315,6 +317,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
     flex: 1,
     paddingHorizontal: 16,
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
   },
   /** Text displayed when there are no notifications. */
   emptyText: {
