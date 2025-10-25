@@ -91,10 +91,7 @@ function HomeScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={{ flex: 1 }}
       >
-        <ScrollView
-          contentContainerStyle={{ paddingBottom: 32 }}
-          nestedScrollEnabled
-        >
+        <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
           {/* Watchlist Section */}
           <TouchableOpacity
             onLongPress={() => setDebugVisible(true)}
@@ -137,12 +134,8 @@ function HomeScreen() {
           {tickers.length > 0 && (
             <>
               <Text style={styles.title}>ライブアップデート</Text>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                nestedScrollEnabled
-              >
-                {tickers.map((t) => {
+              <View style={styles.liveTilesContainer}>
+                {tickers.slice(0, 3).map((t) => {
                   const data = tickerStatusMap[t] || {
                     status: '読み込み中...',
                     importance: null,
@@ -156,7 +149,7 @@ function HomeScreen() {
                     />
                   );
                 })}
-              </ScrollView>
+              </View>
             </>
           )}
 
@@ -178,7 +171,7 @@ function HomeScreen() {
           {allEvents.length > 0 && (
             <>
               <Text style={styles.title}>最新イベント</Text>
-              {allEvents.slice(0, 10).map((event) => (
+              {allEvents.slice(0, 5).map((event) => (
                 <TouchableOpacity
                   key={event.clusterId}
                   onPress={() => {
@@ -203,7 +196,7 @@ function HomeScreen() {
           {notifications.length === 0 ? (
             <Text style={styles.emptyText}>通知はまだありません</Text>
           ) : (
-            notifications.map((n) => (
+            notifications.slice(0, 5).map((n) => (
               <TouchableOpacity
                 key={n.id}
                 onPress={() => setSelectedNotification(n)}
@@ -357,6 +350,12 @@ const styles = StyleSheet.create({
   loadingText: {
     color: COLORS.secondary,
     fontSize: 14,
+  },
+  liveTilesContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginBottom: 16,
   },
   input: {
     color: COLORS.text,
