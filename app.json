@@ -3,12 +3,10 @@
     "name": "BizStock Alert",
     "slug": "bizstock-alert",
     "version": "0.1.0",
+    "sdkVersion": "49.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
     "splash": {
-      "image": "./assets/splash.png",
-      "resizeMode": "contain",
       "backgroundColor": "#000000"
     },
     "assetBundlePatterns": [
@@ -19,15 +17,8 @@
       "bundleIdentifier": "com.bizstockalert.app"
     },
     "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#000000"
-      },
       "package": "com.bizstockalert.app",
       "userInterfaceStyle": "dark"
-    },
-    "web": {
-      "favicon": "./assets/favicon.png"
     }
   }
 }
