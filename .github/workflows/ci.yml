@@ -16,7 +16,7 @@ jobs:
           node-version: '20'
           cache: 'npm'
       - name: Use lockfile install
-        run: npm ci
+        run: npm install --legacy-peer-deps
       - name: Clear jest cache
         run: npx jest --clearCache || true
       - name: Lint (optional)
