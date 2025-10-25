@@ -91,7 +91,10 @@ function HomeScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={{ flex: 1 }}
       >
-        <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
+        <ScrollView
+          contentContainerStyle={{ paddingBottom: 32 }}
+          nestedScrollEnabled
+        >
           {/* Watchlist Section */}
           <TouchableOpacity
             onLongPress={() => setDebugVisible(true)}
@@ -134,7 +137,11 @@ function HomeScreen() {
           {tickers.length > 0 && (
             <>
               <Text style={styles.title}>ライブアップデート</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                nestedScrollEnabled
+              >
                 {tickers.map((t) => {
                   const data = tickerStatusMap[t] || {
                     status: '読み込み中...',
