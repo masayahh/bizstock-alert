@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import {
-  KeyboardAvoidingView,
   Platform,
   SafeAreaView,
   ScrollView,
@@ -87,151 +86,149 @@ function HomeScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={COLORS.background} />
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={{ flex: 1 }}
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: 32 }}
+        keyboardShouldPersistTaps="handled"
       >
-        <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
-          {/* Watchlist Section */}
+        {/* Watchlist Section */}
+        <TouchableOpacity
+          onLongPress={() => setDebugVisible(true)}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.title}>ウォッチリスト</Text>
+        </TouchableOpacity>
+        <View style={styles.inputContainer}>
+          <TextInput
+            style={styles.input}
+            value={input}
+            onChangeText={setInput}
+            placeholder="ティッカーを入力"
+            placeholderTextColor={COLORS.secondary}
+            autoCapitalize="characters"
+            returnKeyType="done"
+            onSubmitEditing={handleAdd}
+          />
           <TouchableOpacity
-            onLongPress={() => setDebugVisible(true)}
-            activeOpacity={0.8}
+            style={styles.addButton}
+            onPress={handleAdd}
+            accessibilityLabel="Add ticker"
           >
-            <Text style={styles.title}>ウォッチリスト</Text>
+            <Text style={styles.addButtonText}>追加</Text>
           </TouchableOpacity>
-          <View style={styles.inputContainer}>
-            <TextInput
-              style={styles.input}
-              value={input}
-              onChangeText={setInput}
-              placeholder="ティッカーを入力"
-              placeholderTextColor={COLORS.secondary}
-              autoCapitalize="characters"
-              returnKeyType="done"
-              onSubmitEditing={handleAdd}
-            />
+        </View>
+        {tickers.map((t) => (
+          <View key={t} style={styles.tickerItem}>
+            <Text style={styles.tickerText}>{t}</Text>
             <TouchableOpacity
-              style={styles.addButton}
-              onPress={handleAdd}
-              accessibilityLabel="Add ticker"
+              accessibilityLabel={`Remove ${t}`}
+              onPress={() => dispatch(removeTicker(t))}
             >
-              <Text style={styles.addButtonText}>追加</Text>
+              <Text style={styles.removeButton}>×</Text>
             </TouchableOpacity>
           </View>
-          {tickers.map((t) => (
-            <View key={t} style={styles.tickerItem}>
-              <Text style={styles.tickerText}>{t}</Text>
-              <TouchableOpacity
-                accessibilityLabel={`Remove ${t}`}
-                onPress={() => dispatch(removeTicker(t))}
-              >
-                <Text style={styles.removeButton}>×</Text>
-              </TouchableOpacity>
-            </View>
-          ))}
+        ))}
 
-          {/* Live Tiles Section */}
-          {tickers.length > 0 && (
-            <>
-              <Text style={styles.title}>ライブアップデート</Text>
-              <View style={styles.liveTilesContainer}>
-                {tickers.slice(0, 3).map((t) => {
-                  const data = tickerStatusMap[t] || {
-                    status: '読み込み中...',
-                    importance: null,
-                  };
-                  return (
-                    <LiveTile
-                      key={t}
-                      ticker={t}
-                      status={data.status}
-                      importance={data.importance}
-                    />
-                  );
-                })}
-              </View>
-            </>
-          )}
-
-          {/* Error Display */}
-          {error && (
-            <View style={styles.errorContainer}>
-              <Text style={styles.errorText}>⚠️ {error}</Text>
-            </View>
-          )}
-
-          {/* Loading Indicator */}
-          {loading && tickers.length > 0 && allEvents.length === 0 && (
-            <View style={styles.loadingContainer}>
-              <Text style={styles.loadingText}>データを取得中...</Text>
-            </View>
-          )}
-
-          {/* Recent Events Section (from mock data) */}
-          {allEvents.length > 0 && (
-            <>
-              <Text style={styles.title}>最新イベント</Text>
-              {allEvents.slice(0, 5).map((event) => (
-                <TouchableOpacity
-                  key={event.clusterId}
-                  onPress={() => {
-                    dispatch(markEventRead(event.clusterId));
-                    setSelectedEvent(event);
-                  }}
-                >
-                  <NotificationLine
-                    ticker={event.primaryTicker}
-                    company={event.primaryTicker}
-                    headline={event.title}
-                    importance={event.personalImpact}
-                    source={event.sources[0]}
+        {/* Live Tiles Section */}
+        {tickers.length > 0 && (
+          <>
+            <Text style={styles.title}>ライブアップデート</Text>
+            <View style={styles.liveTilesContainer}>
+              {tickers.slice(0, 3).map((t) => {
+                const data = tickerStatusMap[t] || {
+                  status: '読み込み中...',
+                  importance: null,
+                };
+                return (
+                  <LiveTile
+                    key={t}
+                    ticker={t}
+                    status={data.status}
+                    importance={data.importance}
                   />
-                </TouchableOpacity>
-              ))}
-            </>
-          )}
+                );
+              })}
+            </View>
+          </>
+        )}
 
-          {/* Notifications Section */}
-          <Text style={styles.title}>通知履歴</Text>
-          {notifications.length === 0 ? (
-            <Text style={styles.emptyText}>通知はまだありません</Text>
-          ) : (
-            notifications.slice(0, 5).map((n) => (
+        {/* Error Display */}
+        {error && (
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>⚠️ {error}</Text>
+          </View>
+        )}
+
+        {/* Loading Indicator */}
+        {loading && tickers.length > 0 && allEvents.length === 0 && (
+          <View style={styles.loadingContainer}>
+            <Text style={styles.loadingText}>データを取得中...</Text>
+          </View>
+        )}
+
+        {/* Recent Events Section (from mock data) */}
+        {allEvents.length > 0 && (
+          <>
+            <Text style={styles.title}>最新イベント</Text>
+            {allEvents.slice(0, 5).map((event) => (
               <TouchableOpacity
-                key={n.id}
-                onPress={() => setSelectedNotification(n)}
+                key={event.clusterId}
+                onPress={() => {
+                  dispatch(markEventRead(event.clusterId));
+                  setSelectedEvent(event);
+                }}
               >
                 <NotificationLine
-                  ticker={n.ticker}
-                  company={n.ticker}
-                  headline={n.message}
-                  importance={n.importance}
-                  source="通知"
+                  ticker={event.primaryTicker}
+                  company={event.primaryTicker}
+                  headline={event.title}
+                  importance={event.personalImpact}
+                  source={event.sources[0]}
                 />
               </TouchableOpacity>
-            ))
-          )}
+            ))}
+          </>
+        )}
 
-          {/* Settings Section */}
-          <Text style={styles.title}>設定</Text>
-          <SettingsBlock
-            title="高重要度は即時通知"
-            value={settings.highImmediate}
-            onToggle={(val) => dispatch(setHighImmediate(val))}
-          />
-          <SettingsBlock
-            title="静音モード"
-            value={settings.quietMode}
-            onToggle={(val) => dispatch(setQuietMode(val))}
-          />
+        {/* Notifications Section */}
+        <Text style={styles.title}>通知履歴</Text>
+        {notifications.length === 0 ? (
+          <Text style={styles.emptyText}>通知はまだありません</Text>
+        ) : (
+          notifications.slice(0, 5).map((n) => (
+            <TouchableOpacity
+              key={n.id}
+              onPress={() => setSelectedNotification(n)}
+            >
+              <NotificationLine
+                ticker={n.ticker}
+                company={n.ticker}
+                headline={n.message}
+                importance={n.importance}
+                source="通知"
+              />
+            </TouchableOpacity>
+          ))
+        )}
 
-          <SettingsBlock
-            title="続報のみ受け取る"
-            value={settings.followUpsOnly}
-            onToggle={(val) => dispatch(setFollowUpsOnly(val))}
-          />
-        </ScrollView>
-      </KeyboardAvoidingView>
+        {/* Settings Section */}
+        <Text style={styles.title}>設定</Text>
+        <SettingsBlock
+          title="高重要度は即時通知"
+          value={settings.highImmediate}
+          onToggle={(val) => dispatch(setHighImmediate(val))}
+        />
+        <SettingsBlock
+          title="静音モード"
+          value={settings.quietMode}
+          onToggle={(val) => dispatch(setQuietMode(val))}
+        />
+
+        <SettingsBlock
+          title="続報のみ受け取る"
+          value={settings.followUpsOnly}
+          onToggle={(val) => dispatch(setFollowUpsOnly(val))}
+        />
+      </ScrollView>
 
       {/* Event Sheet for selected event */}
       <EventSheet
@@ -321,7 +318,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
     flex: 1,
     paddingHorizontal: 16,
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight || 0 : 0,
   },
   /** Text displayed when there are no notifications. */
   emptyText: {

@@ -53,6 +53,7 @@ export default function EventSheet({
         <ScrollView
           style={styles.container}
           contentContainerStyle={{ padding: 16 }}
+          bounces={false}
         >
           <Text style={styles.summary}>{summary}</Text>
           <Text style={styles.sectionHeading}>出典</Text>
