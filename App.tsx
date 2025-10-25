@@ -241,43 +241,47 @@ function HomeScreen() {
       </KeyboardAvoidingView>
 
       {/* Event Sheet for selected event */}
-      {selectedEvent && (
-        <EventSheet
-          summary={
-            selectedEvent.summary || selectedEvent.title.slice(0, 150) + '...'
-          }
-          sources={
-            selectedEvent.events.map((e, idx) => ({
-              name: e.sourceName,
-              url: e.url,
-            })) || [{ name: '出典', url: 'https://example.com' }]
-          }
-          onFollowUpsOnly={() => {
-            dispatch(setFollowUpsOnly(true));
-            setSelectedEvent(null);
-          }}
-          onQuiet={() => {
-            dispatch(setQuietMode(true));
-            setSelectedEvent(null);
-          }}
-        />
-      )}
+      <EventSheet
+        visible={!!selectedEvent}
+        summary={
+          selectedEvent
+            ? selectedEvent.summary || selectedEvent.title.slice(0, 150) + '...'
+            : ''
+        }
+        sources={
+          selectedEvent
+            ? selectedEvent.events.map((e) => ({
+                name: e.sourceName,
+                url: e.url,
+              }))
+            : []
+        }
+        onClose={() => setSelectedEvent(null)}
+        onFollowUpsOnly={() => {
+          dispatch(setFollowUpsOnly(true));
+          setSelectedEvent(null);
+        }}
+        onQuiet={() => {
+          dispatch(setQuietMode(true));
+          setSelectedEvent(null);
+        }}
+      />
 
       {/* Event Sheet for selected notification */}
-      {selectedNotification && (
-        <EventSheet
-          summary={selectedNotification.message}
-          sources={[{ name: '出典', url: 'https://example.com' }]}
-          onFollowUpsOnly={() => {
-            dispatch(setFollowUpsOnly(true));
-            setSelectedNotification(null);
-          }}
-          onQuiet={() => {
-            dispatch(setQuietMode(true));
-            setSelectedNotification(null);
-          }}
-        />
-      )}
+      <EventSheet
+        visible={!!selectedNotification}
+        summary={selectedNotification?.message || ''}
+        sources={[{ name: '出典', url: 'https://example.com' }]}
+        onClose={() => setSelectedNotification(null)}
+        onFollowUpsOnly={() => {
+          dispatch(setFollowUpsOnly(true));
+          setSelectedNotification(null);
+        }}
+        onQuiet={() => {
+          dispatch(setQuietMode(true));
+          setSelectedNotification(null);
+        }}
+      />
 
       {/* Debug Screen (long-press title to open) */}
       <DebugScreen

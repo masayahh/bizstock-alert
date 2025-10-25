@@ -5,6 +5,7 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  Modal,
 } from 'react-native';
 
 export interface Source {
@@ -17,56 +18,77 @@ export interface Source {
  * of an event including the full summary, sources and user actions.
  */
 export interface EventSheetProps {
+  visible: boolean;
   summary: string;
   sources: Source[];
+  onClose: () => void;
   onFollowUpsOnly?: () => void;
   onQuiet?: () => void;
 }
 
 export default function EventSheet({
+  visible,
   summary,
   sources,
+  onClose,
   onFollowUpsOnly,
   onQuiet,
 }: EventSheetProps) {
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={{ padding: 16 }}
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={onClose}
+      transparent={false}
     >
-      <Text style={styles.summary}>{summary}</Text>
-      <Text style={styles.sectionHeading}>出典</Text>
-      {sources.map((src) => (
-        <Text
-          key={src.url}
-          style={styles.source}
-          numberOfLines={2}
-          ellipsizeMode="tail"
+      <View style={styles.modalContainer}>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>イベント詳細</Text>
+          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+            <Text style={styles.closeButtonText}>✕</Text>
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView
+          style={styles.container}
+          contentContainerStyle={{ padding: 16 }}
         >
-          {src.name}: {src.url}
-        </Text>
-      ))}
-      <View style={styles.actions}>
-        {onFollowUpsOnly && (
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={onFollowUpsOnly}
-            accessibilityLabel="Follow ups only"
-          >
-            <Text style={styles.actionText}>続報のみ受け取る</Text>
-          </TouchableOpacity>
-        )}
-        {onQuiet && (
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={onQuiet}
-            accessibilityLabel="Quiet for 2 hours"
-          >
-            <Text style={styles.actionText}>2時間 静かにする</Text>
-          </TouchableOpacity>
-        )}
+          <Text style={styles.summary}>{summary}</Text>
+          <Text style={styles.sectionHeading}>出典</Text>
+          {sources.map((src, idx) => (
+            <Text
+              key={`${src.url}-${idx}`}
+              style={styles.source}
+              numberOfLines={2}
+              ellipsizeMode="tail"
+            >
+              {src.name}: {src.url}
+            </Text>
+          ))}
+          <View style={styles.actions}>
+            {onFollowUpsOnly && (
+              <TouchableOpacity
+                style={styles.actionButton}
+                onPress={onFollowUpsOnly}
+                accessibilityLabel="Follow ups only"
+              >
+                <Text style={styles.actionText}>続報のみ受け取る</Text>
+              </TouchableOpacity>
+            )}
+            {onQuiet && (
+              <TouchableOpacity
+                style={styles.actionButton}
+                onPress={onQuiet}
+                accessibilityLabel="Quiet for 2 hours"
+              >
+                <Text style={styles.actionText}>2時間 静かにする</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </ScrollView>
       </View>
-    </ScrollView>
+    </Modal>
   );
 }
 
@@ -78,6 +100,33 @@ const COLORS = {
 };
 
 const styles = StyleSheet.create({
+  modalContainer: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  headerTitle: {
+    color: COLORS.text,
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  closeButton: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  closeButtonText: {
+    color: COLORS.text,
+    fontSize: 24,
+    fontWeight: '300',
+  },
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
