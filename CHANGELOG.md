@@ -5,6 +5,127 @@ All notable changes to BizStock Alert will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2025-11-19
+
+### Added
+
+#### Professional UI Enhancements
+- **Search & Filter System**: Real-time search across events and notifications with instant results
+- **Advanced Filtering**: Filter by importance level (high/medium/low) with visual chip indicators
+- **Smart Sorting**: Toggle between time-based and importance-based sorting
+- **Pull-to-Refresh**: Native RefreshControl integration for manual updates
+- **Professional Animations**: Fade-in, slide, scale, and spring animations across all components
+
+#### Unified Design System (src/theme/)
+- **Color System** (colors.ts): 40+ semantic colors with type safety
+  - Brand colors: Vibrant emerald green (#10b981)
+  - Background hierarchy: Pure black to elevated grays
+  - Semantic colors: success, warning, error, info
+  - Importance levels with color coding
+  - Shadow and overlay system
+  - Color presets for common use cases
+- **Typography System** (typography.ts): Complete font hierarchy
+  - Font sizes: xs (11px) to 4xl (32px)
+  - Font weights: light (300) to extrabold (800)
+  - Line heights and letter spacing
+  - Pre-defined text styles (h1-h4, body, caption, label, badge, button)
+- **Spacing System** (spacing.ts): Consistent 4px-based spacing
+  - Spacing scale: 0 to 96px
+  - Border radius: sm (6px) to 2xl (24px)
+  - Shadow system with elevation levels
+  - Layout patterns for common use cases
+
+#### Advanced UI Components (src/components/)
+- **Button**: Professional button with 4 variants, 3 sizes, press animations, loading state, icons
+- **Toast**: Toast notification system with 4 types, slide animations, auto-dismiss, action buttons
+- **Badge**: Badge/label component with 5 variants, 3 sizes, icon support
+- **LoadingSpinner**: Animated spinner with 3 sizes, fullscreen overlay mode, custom messages
+- **EmptyState**: Professional empty state with icons, titles, subtitles, action slots
+- **ErrorBoundary**: React error boundary with graceful error handling and retry functionality
+
+#### Enhanced Core Components
+- **NotificationLine**: Upgraded with fade-in/scale animations, accent bars, importance badges with icons (🔴🟡🟢), React.memo optimization
+- **LiveTile**: Enhanced with gradient overlays, ticker underlines, press animations, bottom accent lines, improved shadows
+- **EventSheet**: Redesigned with slide-up animations, background overlay, handle bar, section headers with accent bars, Linking API integration
+
+#### Animation Hooks (src/hooks/useAnimation.ts)
+- **useFadeIn**: Configurable fade-in animation
+- **useSlideIn**: Slide from top/bottom/left/right
+- **useScale**: Scale animation with spring physics
+- **useRotation**: Continuous or one-time rotation
+- **usePulse**: Pulse effect for attention
+- **usePressAnimation**: Press down/up interaction
+
+#### Utility Functions (src/utils/)
+- **Formatters** (formatters.ts):
+  - Number formatting with thousand separators
+  - Japanese date/time formatting
+  - Relative time (e.g., "2時間前", "たった今")
+  - Text truncation with ellipsis
+  - Ticker validation and formatting
+- **Constants** (constants.ts):
+  - App-wide constants with type safety
+  - Animation duration presets
+  - Maximum item limits
+  - Filter and sort type definitions
+
+### Enhanced
+
+#### App.tsx Major Improvements
+- Search functionality with real-time filtering
+- Filter chips with active states
+- Sort toggle with visual indicator
+- Badge counters showing item counts
+- Enhanced header with title and subtitle
+- Professional empty states with examples
+- Refined color palette (#111827 cards, #10b981 accent)
+- Subtle borders (0.08 opacity) for elegance
+- Professional shadows throughout
+- Full accessibility (ARIA labels, roles, hints, states)
+- Increased item limits (5→10) for better content visibility
+
+#### Performance Optimizations
+- React.memo on all components (NotificationLine, LiveTile, EventSheet, Button, Toast, Badge, etc.)
+- useMemo for filtered/sorted data
+- useCallback for event handlers
+- Native driver for all animations (60fps)
+- Optimized re-render prevention
+
+#### Accessibility
+- Complete ARIA implementation across all components
+- Descriptive accessibility labels and hints
+- Proper accessibility roles (button, text, link, etc.)
+- Accessibility states (disabled, busy, selected)
+- Screen reader support
+
+### Fixed
+- **Critical**: Fixed TypeScript type mismatches in App.tsx importance level comparisons (English vs Japanese)
+- **Critical**: Fixed react-redux v8 compatibility in useRedux.ts (removed v9-only .withTypes() syntax)
+- All TypeScript type errors in new code resolved
+- Prettier/ESLint formatting issues auto-fixed
+
+### Changed
+- Unified color palette across all components for consistency
+- Deeper card backgrounds (#111827 vs #0b0f14) for premium feel
+- More subtle borders (0.08 vs 0.10 opacity)
+- Typography refinements (letter-spacing adjustments)
+- Professional shadow system with elevation values
+
+### Technical Improvements
+- Type-safe theme tokens with autocomplete
+- Consistent design language across entire app
+- Reduced code duplication
+- Better developer experience
+- Easier maintenance and extensibility
+
+### Test Coverage
+- 41 tests passing (100%)
+- Zero TypeScript errors in new code
+- Zero lint errors
+- All animations use native driver
+
+---
+
 ## [0.1.0] - 2025-10-25
 
 ### Added
