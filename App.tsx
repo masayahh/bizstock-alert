@@ -142,7 +142,7 @@ function HomeScreen() {
 
     // Apply sorting
     if (sortBy === 'importance') {
-      const importanceOrder = { '強': 3, '中': 2, '弱': 1 };
+      const importanceOrder = { 強: 3, 中: 2, 弱: 1 };
       filtered = [...filtered].sort((a, b) => {
         const aValue = importanceOrder[a.personalImpact] || 0;
         const bValue = importanceOrder[b.personalImpact] || 0;
