@@ -133,16 +133,16 @@ function HomeScreen() {
     // Apply importance filter
     if (filter !== 'all') {
       filtered = filtered.filter((event) => {
-        if (filter === 'high') return event.personalImpact === 'high';
-        if (filter === 'medium') return event.personalImpact === 'medium';
-        if (filter === 'low') return event.personalImpact === 'low';
+        if (filter === 'high') return event.personalImpact === '強';
+        if (filter === 'medium') return event.personalImpact === '中';
+        if (filter === 'low') return event.personalImpact === '弱';
         return true;
       });
     }
 
     // Apply sorting
     if (sortBy === 'importance') {
-      const importanceOrder = { high: 3, medium: 2, low: 1 };
+      const importanceOrder = { '強': 3, '中': 2, '弱': 1 };
       filtered = [...filtered].sort((a, b) => {
         const aValue = importanceOrder[a.personalImpact] || 0;
         const bValue = importanceOrder[b.personalImpact] || 0;
@@ -168,9 +168,9 @@ function HomeScreen() {
 
     if (filter !== 'all') {
       filtered = filtered.filter((notif) => {
-        if (filter === 'high') return notif.importance === 'high';
-        if (filter === 'medium') return notif.importance === 'medium';
-        if (filter === 'low') return notif.importance === 'low';
+        if (filter === 'high') return notif.importance === '強';
+        if (filter === 'medium') return notif.importance === '中';
+        if (filter === 'low') return notif.importance === '弱';
         return true;
       });
     }
