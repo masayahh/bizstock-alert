@@ -20,6 +20,7 @@ import EventSheet from './src/EventSheet';
 import LiveTile from './src/LiveTile';
 import NotificationLine from './src/NotificationLine';
 import SettingsBlock from './src/SettingsBlock';
+import CapabilityShowcaseCard from './src/components/CapabilityShowcaseCard';
 import { useAppInit } from './src/hooks/useAppInit';
 import { useAppDispatch, useAppSelector } from './src/hooks/useRedux';
 import store from './src/store';
@@ -142,7 +143,7 @@ function HomeScreen() {
 
     // Apply sorting
     if (sortBy === 'importance') {
-      const importanceOrder = { '強': 3, '中': 2, '弱': 1 };
+      const importanceOrder = { 強: 3, 中: 2, 弱: 1 };
       filtered = [...filtered].sort((a, b) => {
         const aValue = importanceOrder[a.personalImpact] || 0;
         const bValue = importanceOrder[b.personalImpact] || 0;
@@ -208,6 +209,11 @@ function HomeScreen() {
               <Text style={styles.headerSubtitle}>リアルタイムIR通知</Text>
             </View>
           </TouchableOpacity>
+
+          <CapabilityShowcaseCard
+            events={filteredEvents}
+            notifications={filteredNotifications}
+          />
 
           {/* Search Bar */}
           {(allEvents.length > 0 || notifications.length > 0) && (
